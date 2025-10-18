@@ -20,3 +20,40 @@ jobs:
           go build ./...
       - name: Test
         run: go test -v -cover ./...
+        
+  docker-publish:
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare tags
+        id: prep
+        run: |
+          REPO=${GITHUB_REPOSITORY,,}
+          SHORTSHA=${GITHUB_SHA::7}
+          echo "IMAGE=ghcr.io/${REPO}" >> $GITHUB_OUTPUT
+          echo "TAG_SHA=sha-${SHORTSHA}" >> $GITHUB_OUTPUT
+          echo "TAG_LATEST=latest" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        run: |
+          docker build \
+            -t ${{ steps.prep.outputs.IMAGE }}:${{ steps.prep.outputs.TAG_SHA }} \
+            -t ${{ steps.prep.outputs.IMAGE }}:${{ steps.prep.outputs.TAG_LATEST }} .
+
+      - name: Push image
+        run: |
+          docker push ${{ steps.prep.outputs.IMAGE }}:${{ steps.prep.outputs.TAG_SHA }}
+          docker push ${{ steps.prep.outputs.IMAGE }}:${{ steps.prep.outputs.TAG_LATEST }}
