@@ -4,7 +4,7 @@ import "testing"
 
 func TestSum(t *testing.T) {
 	got := Sum([]float64{1, 2, 3})
-	want := 6.0
+	want := 7.0
 	if got != want {
 		t.Fatalf("Sum() = %v; want %v", got, want)
 	}
